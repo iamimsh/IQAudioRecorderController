@@ -70,7 +70,7 @@
 
 //Navigation Bar
 @property NSString *navigationTitle;
-@property UIBarButtonItem *cancelButton, *doneButton;
+//@property UIBarButtonItem *cancelButton, *doneButton;
 
 //Playing controls
 @property UIBarButtonItem *playButton, *pauseButton, *stopPlayButton, *flexItem;
@@ -262,7 +262,7 @@
         
         _cropOrDeleteButton.tintColor = [self _normalTintColor];
         
-        [self setToolbarItems:@[_playButton,_flexItem, _startRecordingButton,_flexItem, _cropOrDeleteButton] animated:NO];
+        [self setToolbarItems:@[_playButton,_flexItem, _startRecordingButton,_flexItem] animated:NO];
 
         _playButton.enabled = NO;
         _cropOrDeleteButton.enabled = NO;
@@ -279,12 +279,6 @@
             _recordingFilePath = [NSTemporaryDirectory() stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.m4a",globallyUniqueString]];
 
             recordSettings[AVFormatIDKey] = @(kAudioFormatMPEG4AAC);
-        }
-        else if (self.audioFormat == IQAudioFormat_wav)
-        {
-            _recordingFilePath = [NSTemporaryDirectory() stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.wav",globallyUniqueString]];
-            
-            recordSettings[AVFormatIDKey] = @(kAudioFormatLinearPCM);
         }
         else if (self.audioFormat == IQAudioFormat_caf)
         {
@@ -337,11 +331,11 @@
             self.navigationItem.title = NSLocalizedString(@"Audio Recorder",nil);
         }
 
-        _cancelButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCancel target:self action:@selector(cancelAction:)];
-        self.navigationItem.leftBarButtonItem = _cancelButton;
-        _doneButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(doneAction:)];
-        _doneButton.enabled = NO;
-        self.navigationItem.rightBarButtonItem = _doneButton;
+//        _cancelButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCancel target:self action:@selector(cancelAction:)];
+//        self.navigationItem.leftBarButtonItem = _cancelButton;
+//        _doneButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(doneAction:)];
+//        _doneButton.enabled = NO;
+//        self.navigationItem.rightBarButtonItem = _doneButton;
     }
     
     //Player Duration View
@@ -420,6 +414,44 @@
                 _visualEffectView.backgroundColor = [UIColor darkGrayColor];
             }
         }
+    }
+}
+
+// Added by Imran.
+- (void)viewDidAppear:(BOOL)animated
+{
+    [super viewDidAppear:animated];
+    
+    //UI Update
+    {
+        [self setToolbarItems:@[_stopRecordingButton,_flexItem, _pauseRecordingButton,_flexItem] animated:YES];
+        _cropOrDeleteButton.enabled = NO;
+//        [self.navigationItem setLeftBarButtonItem:_cancelRecordingButton animated:YES];
+//        _doneButton.enabled = NO;
+    }
+    
+    /*
+     Create the recorder
+     */
+    if ([[NSFileManager defaultManager] fileExistsAtPath:_recordingFilePath])
+    {
+        [[NSFileManager defaultManager] removeItemAtPath:_recordingFilePath error:nil];
+    }
+    
+    _oldSessionCategory = [AVAudioSession sharedInstance].category;
+    [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryRecord error:nil];
+    [UIApplication sharedApplication].idleTimerDisabled = YES;
+    [_audioRecorder prepareToRecord];
+    
+    _isRecordingPaused = YES;
+    
+    if (self.maximumRecordDuration <=0)
+    {
+        [_audioRecorder record];
+    }
+    else
+    {
+        [_audioRecorder recordForDuration:self.maximumRecordDuration];
     }
 }
 
@@ -535,7 +567,7 @@
     
     //UI Update
     {
-        [self setToolbarItems:@[_pauseButton,_flexItem, _stopPlayButton,_flexItem, _cropOrDeleteButton] animated:YES];
+        [self setToolbarItems:@[_pauseButton,_flexItem, _stopPlayButton,_flexItem] animated:YES];
         [self showNavigationButton:NO];
         _cropOrDeleteButton.enabled = NO;
     }
@@ -569,7 +601,7 @@
 {
     //UI Update
     {
-        [self setToolbarItems:@[_playButton,_flexItem, _stopPlayButton,_flexItem, _cropOrDeleteButton] animated:YES];
+        [self setToolbarItems:@[_playButton,_flexItem, _stopPlayButton,_flexItem] animated:YES];
     }
     
     [_audioPlayer pause];
@@ -582,7 +614,7 @@
 {
     //UI Update
     {
-        [self setToolbarItems:@[_playButton,_flexItem, _startRecordingButton,_flexItem, _cropOrDeleteButton] animated:YES];
+        [self setToolbarItems:@[_playButton,_flexItem, _startRecordingButton,_flexItem] animated:YES];
         _cropOrDeleteButton.enabled = YES;
     }
     
@@ -627,10 +659,10 @@
 {
     //UI Update
     {
-        [self setToolbarItems:@[_stopRecordingButton,_flexItem, _pauseRecordingButton,_flexItem, _cropOrDeleteButton] animated:YES];
+        [self setToolbarItems:@[_stopRecordingButton,_flexItem, _pauseRecordingButton,_flexItem] animated:YES];
         _cropOrDeleteButton.enabled = NO;
-        [self.navigationItem setLeftBarButtonItem:_cancelRecordingButton animated:YES];
-        _doneButton.enabled = NO;
+//        [self.navigationItem setLeftBarButtonItem:_cancelRecordingButton animated:YES];
+//        _doneButton.enabled = NO;
     }
     
     /*
@@ -662,7 +694,7 @@
 {
     //UI Update
     {
-        [self setToolbarItems:@[_stopRecordingButton,_flexItem, _pauseRecordingButton,_flexItem, _cropOrDeleteButton] animated:YES];
+        [self setToolbarItems:@[_stopRecordingButton,_flexItem, _pauseRecordingButton,_flexItem] animated:YES];
     }
 
     _isRecordingPaused = NO;
@@ -673,13 +705,15 @@
 {
     _isRecordingPaused = YES;
     [_audioRecorder pause];
-    [self setToolbarItems:@[_stopRecordingButton,_flexItem, _continueRecordingButton,_flexItem, _cropOrDeleteButton] animated:YES];
+    [self setToolbarItems:@[_stopRecordingButton,_flexItem, _continueRecordingButton,_flexItem] animated:YES];
 }
 
 -(void)stopRecordingButtonAction:(UIBarButtonItem*)item
 {
     _isRecordingPaused = NO;
     [_audioRecorder stop];
+    
+    [self notifySuccessDelegate];
 }
 
 -(void)cancelRecordingAction:(UIBarButtonItem*)item
@@ -699,20 +733,20 @@
     {
         //UI Update
         {
-            [self setToolbarItems:@[_playButton,_flexItem, _startRecordingButton,_flexItem, _cropOrDeleteButton] animated:YES];
-            [self.navigationItem setLeftBarButtonItem:_cancelButton animated:YES];
+            [self setToolbarItems:@[_playButton,_flexItem, _startRecordingButton,_flexItem] animated:YES];
+//            [self.navigationItem setLeftBarButtonItem:_cancelButton animated:YES];
             
             if ([[NSFileManager defaultManager] fileExistsAtPath:_recordingFilePath])
             {
                 _playButton.enabled = YES;
                 _cropOrDeleteButton.enabled = YES;
-                _doneButton.enabled = YES;
+//                _doneButton.enabled = YES;
             }
             else
             {
                 _playButton.enabled = NO;
                 _cropOrDeleteButton.enabled = NO;
-                _doneButton.enabled = NO;
+//                _doneButton.enabled = NO;
             }
         }
 
@@ -816,7 +850,6 @@
     controller.barStyle = self.barStyle;
     controller.normalTintColor = self.normalTintColor;
     controller.highlightedTintColor = self.highlightedTintColor;
-    controller.audioFormat = self.audioFormat;
     
     if (self.blurrEnabled)
     {
@@ -867,7 +900,7 @@
                                                         
                                                         weakSelf.playButton.enabled = NO;
                                                         weakSelf.cropOrDeleteButton.enabled = NO;
-                                                        weakSelf.doneButton.enabled = NO;
+//                                                        weakSelf.doneButton.enabled = NO;
                                                         weakSelf.navigationItem.title = weakSelf.navigationTitle;
                                                     }];
     
@@ -899,8 +932,8 @@
 {
     if (show)
     {
-        [self.navigationItem setLeftBarButtonItem:_cancelButton animated:YES];
-        [self.navigationItem setRightBarButtonItem:_doneButton animated:YES];
+//        [self.navigationItem setLeftBarButtonItem:_cancelButton animated:YES];
+//        [self.navigationItem setRightBarButtonItem:_doneButton animated:YES];
     }
     else
     {
